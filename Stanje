@@ -1,0 +1,102 @@
+    /* Metoda koja uspoređuje trenutno stanje sredstva na skladištu te ukoliko je količina manja od količine koju korisnik
+    želi odobriti/izdati izbacuje poruku koja upozorava korisnika */
+    
+    
+    
+    public void commitStavkeNaloga() {       
+               
+		//dohvaćanje trenutnih zapisa i commit u bazu
+				
+                ViewObject masterNalog=this.getMaterijalniNaloziView1();
+                ViewObject masterMatNal = this.getMatNaloziStavkeView1();
+                Row nalogMaster=masterNalog.getCurrentRow();
+                Row curMaster = masterMatNal.getCurrentRow();
+                this.getDBTransaction().commit();
+                
+                
+                System.out.println("Stanje naloga: " + nalogMaster.getAttribute("StanjeNaloga"));
+                
+                if(nalogMaster.getAttribute("StanjeNaloga").toString() != "PREDANO"){
+                try{
+                
+                PreparedStatement stat =  null;
+                ResultSet rs = null;
+                Connection conn = null;
+                String status = null;
+                int kolicina=0;
+                int kolicinaOdobrena=0;
+                    
+                
+                // upit koji dohvaća trenutno stanje sredstva na skladištu 
+				
+                String sql = "select stanje from mev.mev_stanje_rezervirano_view where org_cjelina='"+MyADFUtil.getFromSessionScope("psif").toString()+"' and ez='"+nalogMaster.getAttribute("RbKartotekePosiljatelja").toString()+"' and nomenklatura_sredstva='"+curMaster.getAttribute("NomenklaturaSredstva").toString()+"'";
+                
+                                  
+                conn =MyADFUtil.getConnection();                        
+                                  
+                stat = conn.prepareStatement(sql);                    
+                    
+                rs = stat.executeQuery();
+                   
+                    
+                    while (rs.next()){
+                        rs.getString(1);
+                        status = rs.getString(1);
+                        System.out.println(status);
+                    }
+                    
+                    conn.close();
+                   
+                    int stanje=Integer.parseInt(status);
+                    
+                    
+					
+		     //provjera izdane količine
+                    
+                    if(curMaster.getAttribute("KolicinaIzdana") != null){
+                        
+                     kolicina=Integer.parseInt(curMaster.getAttribute("KolicinaIzdana").toString());
+                      
+					  
+					  
+                        if(stanje<kolicina) { 
+                            
+                            System.out.println("Količina u skladištu nije dovoljna za transakciju");
+                            
+                            MyADFUtil.showWarnMessage("Količina izdana je veća od trenutne količine u skladištu");
+                            
+                            
+                            }
+                        
+                    }  
+                    
+		    //provjera odobrene količine
+					
+                    if(curMaster.getAttribute("KolicinaOdobrena") != null){                            
+                    
+                    kolicinaOdobrena=Integer.parseInt(curMaster.getAttribute("KolicinaOdobrena").toString());
+                            
+                                                        
+                     
+                    if(stanje<kolicinaOdobrena) { 
+                        
+                        System.out.println("Količina u skladištu nije dovoljna za transakciju");
+                        
+                        MyADFUtil.showWarnMessage("Količina odobrena je veća od trenutne količine u skladištu");
+                        
+                        
+                        }  
+						}
+                    
+                    
+                
+                }
+                
+                catch (Exception e){
+                       e.printStackTrace();
+                   }
+                
+               
+                }
+        
+            }
